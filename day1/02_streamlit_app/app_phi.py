@@ -7,7 +7,7 @@ import metrics              # 評価指標モジュール
 import data                 # データモジュール
 import torch
 from transformers import pipeline
-from config import MODEL_NAME
+from config import MODEL2_NAME
 from huggingface_hub import HfFolder
 
 # --- アプリケーション設定 ---
@@ -33,7 +33,7 @@ def load_model():
         st.info(f"Using device: {device}") # 使用デバイスを表示
         pipe = pipeline(
             "text-generation",
-            model=MODEL_NAME,
+            model=MODEL2_NAME,
             model_kwargs={"torch_dtype": torch.bfloat16},
             device=device
         )
@@ -46,8 +46,8 @@ def load_model():
 pipe = llm.load_model()
 
 # --- Streamlit アプリケーション ---
-st.title("🤖 GEMMA2 Chatbot with Feedback")
-st.write("Gemma2 モデルを使用したチャットボットです。回答に対してフィードバックを行えます。")
+st.title("🤖 Phi 4 Chatbot with Feedback")
+st.write("Microsoft Phi4モデルを使用したチャットボットです。回答に対してフィードバックを行えます。")
 st.markdown("---")
 
 # --- サイドバー ---
