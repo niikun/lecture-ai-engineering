@@ -1,7 +1,7 @@
 # app.py
 import streamlit as st
 import ui                   # UIモジュール
-import llm                  # LLMモジュール
+import llm_phi                  # LLMモジュール
 import database             # データベースモジュール
 import metrics              # 評価指標モジュール
 import data                 # データモジュール
