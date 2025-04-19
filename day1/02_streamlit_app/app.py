@@ -25,7 +25,7 @@ data.ensure_initial_data()
 
 # LLMモデルのロード（キャッシュを利用）
 # モデルをキャッシュして再利用
-@st.cache_resource
+# @st.cache_resource
 def load_model():
     """LLMモデルをロードする"""
     try:
