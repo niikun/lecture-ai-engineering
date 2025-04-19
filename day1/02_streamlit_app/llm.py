@@ -4,7 +4,7 @@ import torch
 from transformers import pipeline
 import streamlit as st
 import time
-from config import MODEL_NAME
+from config import MODEL_NAME,MODEL2_NAME
 from huggingface_hub import login
 
 # モデルをキャッシュして再利用
@@ -20,7 +20,7 @@ def load_model():
         st.info(f"Using device: {device}") # 使用デバイスを表示
         pipe = pipeline(
             "text-generation",
-            model=MODEL_NAME,
+            model=MODEL2_NAME,
             model_kwargs={"torch_dtype": torch.bfloat16},
             device=device
         )
