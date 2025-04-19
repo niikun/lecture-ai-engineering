@@ -43,7 +43,7 @@ def load_model():
         st.error(f"モデル '{MODEL2_NAME}' の読み込みに失敗しました: {e}")
         st.error("GPUメモリ不足の可能性があります。不要なプロセスを終了するか、より小さいモデルの使用を検討してください。")
         return None
-pipe = llm.load_model()
+pipe = llm_phi.load_model()
 
 # --- Streamlit アプリケーション ---
 st.title("🤖 Phi 4 Chatbot with Feedback")
