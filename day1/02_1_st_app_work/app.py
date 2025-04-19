@@ -14,3 +14,7 @@ from huggingface_hub import HfFolder
 st.set_page_config(page_title="Gemma Chatbot", layout="wide")
 
 # --- 初期化処理 ---
+metrics.initialize_nltk()
+
+# データベースの初期化（テーブルが存在しない場合、作成）
+database.init_db()
