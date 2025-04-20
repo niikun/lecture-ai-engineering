@@ -174,7 +174,7 @@ async def generate_simple(request: SimpleGenerationRequest):
         # プロンプトテキストで直接応答を生成
         print("モデル推論を開始...")
         outputs = model(
-            request.prompt+" 大阪弁で返事してな！",
+            request.prompt,
             max_new_tokens=request.max_new_tokens,
             do_sample=request.do_sample,
             temperature=request.temperature,
