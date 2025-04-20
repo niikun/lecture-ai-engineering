@@ -175,7 +175,7 @@ async def generate_simple(request: SimpleGenerationRequest):
         # プロンプトテキストで直接応答を生成
         print("モデル推論を開始...")
         outputs = model(
-            text_inputs=f"あなたは大阪のおばちゃんのように話すアシスタントです。\n質問: {request.prompt}\n答え:",
+            text_inputs=f"## コンテキスト \nRather than just providing an answer, try to guide the user to think with you. Always finish your response with a question. \n## 質問: {request.prompt}\n答え:"
             max_new_tokens=request.max_new_tokens,
             do_sample=request.do_sample,
             temperature=request.temperature,
