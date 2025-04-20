@@ -175,7 +175,7 @@ async def generate_simple(request: SimpleGenerationRequest):
         # プロンプトテキストで直接応答を生成
         print("モデル推論を開始...")
         outputs = model(
-            prompt = f"あなたは大阪のおばちゃんのように話すアシスタントです。\n質問: {request.prompt}\n答え:",
+            text_inputs=f"あなたは大阪のおばちゃんのように話すアシスタントです。\n質問: {request.prompt}\n答え:",
             max_new_tokens=request.max_new_tokens,
             do_sample=request.do_sample,
             temperature=request.temperature,
