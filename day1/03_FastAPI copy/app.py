@@ -3,22 +3,22 @@ import torch
 from transformers import pipeline
 import time
 import traceback
-from fastapi import FastAPI, HTTPException,BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional,List,Dict,Any
+from typing import Optional, List, Dict, Any
 import uvicorn
 import nest_asyncio
 from pyngrok import ngrok
 
-# --- 設定 ---  
+# --- 設定 ---
 # モデル名を設定
 MODEL_NAME = "google/gemma-2-2b-jpn-it"  # お好みのモデルに変更可能です
 print(f"モデル名を設定: {MODEL_NAME}")
 
 # --- モデル設定クラス ---
 class Config:
-    def __init__(self,model_name=MODEL_NAME):
+    def __init__(self, model_name=MODEL_NAME):
         self.MODEL_NAME = model_name
 
 config = Config(MODEL_NAME)
@@ -41,16 +41,16 @@ app.add_middleware(
 
 # --- データモデル定義 ---
 class Message(BaseModel):
-    role:str
-    content:str
+    role: str
+    content: str
 
+# 直接プロンプトを使用した簡略化されたリクエスト
 class SimpleGenerationRequest(BaseModel):
     prompt: str
     max_new_tokens: Optional[int] = 512
     do_sample: Optional[bool] = True
     temperature: Optional[float] = 0.7
     top_p: Optional[float] = 0.9
-
 
 class GenerationResponse(BaseModel):
     generated_text: str
@@ -62,53 +62,47 @@ model = None
 
 def load_model():
     """推論用のLLMモデルを読み込む"""
-    global model
+    global model  # グローバル変数を更新するために必要
     try:
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"デバイス: {device} ")
+        print(f"使用デバイス: {device}")
         pipe = pipeline(
             "text-generation",
             model=config.MODEL_NAME,
-            model_kwargs={"torch_dtype":torch.float16},
-            device=device,
+            model_kwargs={"torch_dtype": torch.bfloat16},
+            device=device
         )
-        print(f"モデルを読み込みました: {config.MODEL_NAME}")
-        model = pipe
+        print(f"モデル '{config.MODEL_NAME}' の読み込みに成功しました")
+        model = pipe  # グローバル変数を更新
         return pipe
     except Exception as e:
-        error_msg=f"モデル {config.MODEL_NAME} の読み込みに失敗しました: {e}"
+        error_msg = f"モデル '{config.MODEL_NAME}' の読み込みに失敗: {e}"
         print(error_msg)
-        traceback.print_exc()
+        traceback.print_exc()  # 詳細なエラー情報を出力
         return None
 
-def extract_assistant_response(outputs,user_prompt):
+def extract_assistant_response(outputs, user_prompt):
     """モデルの出力からアシスタントの応答を抽出する"""
     assistant_response = ""
     try:
-        if (
-            outputs 
-            and isinstance(outputs, list) 
-            and len(outputs) > 0 
-            and outputs[0].get("generated_text")
-        ):
+        if outputs and isinstance(outputs, list) and len(outputs) > 0 and outputs[0].get("generated_text"):
             generated_output = outputs[0]["generated_text"]
             
             if isinstance(generated_output, list):
                 # メッセージフォーマットの場合
                 if len(generated_output) > 0:
                     last_message = generated_output[-1]
-                    if (
-                        isinstance(last_message,dict) 
-                        and last_message.get("role") == "assistant"
-                    ):
-                        assistant_response = last_message.get("content","").strip()
+                    if isinstance(last_message, dict) and last_message.get("role") == "assistant":
+                        assistant_response = last_message.get("content", "").strip()
                     else:
                         # 予期しないリスト形式の場合は最後の要素を文字列として試行
                         print(f"警告: 最後のメッセージの形式が予期しないリスト形式です: {last_message}")
                         assistant_response = str(last_message).strip()
+
             elif isinstance(generated_output, str):
                 # 文字列形式の場合
                 full_text = generated_output
+                
                 # 単純なプロンプト入力の場合、プロンプト後の全てを抽出
                 if user_prompt:
                     prompt_end_index = full_text.find(user_prompt)
@@ -122,23 +116,25 @@ def extract_assistant_response(outputs,user_prompt):
                     assistant_response = full_text
             else:
                 print(f"警告: 予期しない出力タイプ: {type(generated_output)}")
-                assistant_response = str(generated_output).strip()
+                assistant_response = str(generated_output).strip()  # 文字列に変換
+
     except Exception as e:
         print(f"応答の抽出中にエラーが発生しました: {e}")
         traceback.print_exc()
-        assistant_response = "応答の抽出に失敗しました。"
+        assistant_response = "応答の抽出に失敗しました。"  # エラーメッセージを設定
 
     if not assistant_response:
         print("警告: アシスタントの応答を抽出できませんでした。完全な出力:", outputs)
         # デフォルトまたはエラー応答を返す
         assistant_response = "応答を生成できませんでした。"
+
     return assistant_response
 
-# --- APIエンドポイント定義 ---
+# --- FastAPIエンドポイント定義 ---
 @app.on_event("startup")
 async def startup_event():
     """起動時にモデルを初期化"""
-    load_model_task()
+    load_model_task()  # バックグラウンドではなく同期的に読み込む
     if model is None:
         print("警告: 起動時にモデルの初期化に失敗しました")
     else:
@@ -147,72 +143,78 @@ async def startup_event():
 @app.get("/")
 async def root():
     """基本的なAPIチェック用のルートエンドポイント"""
-    return {"status":"ok","message": "APIは正常に動作しています。"}
+    return {"status": "ok", "message": "APIは正常に動作しています。"}
 
 @app.get("/health")
 async def health_check():
-    """ヘルスチェック用のエンドポイント"""
-    global model 
-    if model is None:
-        return {"status": "error", "message": "モデルが初期化されていません。"}
-    
-    return {"status": "ok", "message": "APIは正常に動作しています。"}
-
-@app.post("/generate",response_model=GenerationResponse)
-async def generate_simple(request: SimpleGenerationRequest):
-    """単純なプロンプトン入力に基づいてテキストを生成"""
+    """ヘルスチェックエンドポイント"""
     global model
     if model is None:
-        print("generate エンドポイント：モデルが読み込まれていません。読み込みます…")
-        load_model_task()
+        return {"status": "error", "message": "No model loaded"}
+
+    return {"status": "ok", "model": config.MODEL_NAME}
+
+# 簡略化されたエンドポイント
+@app.post("/generate", response_model=GenerationResponse)
+async def generate_simple(request: SimpleGenerationRequest):
+    """単純なプロンプト入力に基づいてテキストを生成"""
+    global model
+
+    if model is None:
+        print("generateエンドポイント: モデルが読み込まれていません。読み込みを試みます...")
+        load_model_task()  # 再度読み込みを試みる
         if model is None:
-            print("モデルの読み込みに失敗しました。")
-            raise HTTPException(status_code=503, detail="モデルの読み込みに失敗しました。")
-        
+            print("generateエンドポイント: モデルの読み込みに失敗しました。")
+            raise HTTPException(status_code=503, detail="モデルが利用できません。後でもう一度お試しください。")
+
     try:
         start_time = time.time()
-        print(f"シンプルなリクエストを受信: prompt = {request.prompt[:100]}...,\
-              max_new_tokens = {request.max_new_tokens},\
-              do_sample = {request.do_sample},\
-              temperature = {request.temperature},\
-              top_p = {request.top_p}")
-        print("モデル推進を開始…")
+        print(f"シンプルなリクエストを受信: prompt={request.prompt[:100]}..., max_new_tokens={request.max_new_tokens}")  # 長いプロンプトは切り捨て
+
+        # プロンプトテキストで直接応答を生成
+        print("モデル推論を開始...")
         outputs = model(
-            request.prompt+"大阪弁で返事してな！",
+            request.prompt,
             max_new_tokens=request.max_new_tokens,
             do_sample=request.do_sample,
             temperature=request.temperature,
             top_p=request.top_p,
         )
-        print("モデル推進が完了しました。")
+        print("モデル推論が完了しました。")
 
         # アシスタント応答を抽出
-        assistant_response = extract_assistant_response(outputs,request.prompt)
-        print("抽出されたアシスタント応答：{assistant_response[:100]}...")  # 長い応答は切り捨て
+        assistant_response = extract_assistant_response(outputs, request.prompt)
+        print(f"抽出されたアシスタント応答: {assistant_response[:100]}...")  # 長い場合は切り捨て
+
         end_time = time.time()
         response_time = end_time - start_time
-        print(f"応答時間: {response_time:.2f}秒")
+        print(f"応答生成時間: {response_time:.2f}秒")
+
         return GenerationResponse(
             generated_text=assistant_response,
             response_time=response_time
         )
+
     except Exception as e:
-        print(f"エラーが発生しました: {e}")
+        print(f"シンプル応答生成中にエラーが発生しました: {e}")
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail="内部サーバーエラー")
-    
+        raise HTTPException(status_code=500, detail=f"応答の生成中にエラーが発生しました: {str(e)}")
+
 def load_model_task():
-    """バックグラウンドでモデルを読み込む"""
+    """モデルを読み込むバックグラウンドタスク"""
     global model
-    print("load_model_task: モデルの読み込みを開始…")
+    print("load_model_task: モデルの読み込みを開始...")
+    # load_model関数を呼び出し、結果をグローバル変数に設定
     loaded_pipe = load_model()
     if loaded_pipe:
-        model = loaded_pipe
+        model = loaded_pipe  # グローバル変数を更新
         print("load_model_task: モデルの読み込みが完了しました。")
     else:
         print("load_model_task: モデルの読み込みに失敗しました。")
 
-# --- ngrokトンネルの設定 ---
+print("FastAPIエンドポイントを定義しました。")
+
+# --- ngrokでAPIサーバーを実行する関数 ---
 def run_with_ngrok(port=8501):
     """ngrokでFastAPIアプリを実行"""
     nest_asyncio.apply()
