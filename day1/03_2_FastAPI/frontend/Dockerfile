@@ -9,7 +9,7 @@ COPY requirements.txt .
 
 # Flask のみ必要な場合はピンポイントで入れてもOK
 RUN pip install --upgrade pip \
-    && pip install --no-cache-dir flask
+    && pip install --no-cache-dir flask requests
 
 # アプリケーションコードをコピー
 COPY ./frontend /app

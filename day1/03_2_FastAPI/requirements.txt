@@ -10,3 +10,5 @@ protobuf
 pyngrok
 pylint
 pytest
+nest_asyncio
+python-dotenv
