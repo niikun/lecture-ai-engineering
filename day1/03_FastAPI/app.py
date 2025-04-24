@@ -29,7 +29,7 @@ config = Config(MODEL_NAME)
 # --- FastAPIアプリケーション定義 ---
 app = FastAPI(
     title="ローカルLLM APIサービス",
-    description="transformersモデルを使用したテキスト生成のためのAPI",
+    description=f"{MODEL_NAME}モデルを使用したテキスト生成のためのAPI",
     version="1.0.0",
 )
 
