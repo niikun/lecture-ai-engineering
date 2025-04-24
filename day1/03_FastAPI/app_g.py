@@ -12,9 +12,8 @@ import nest_asyncio
 from pyngrok import ngrok
 
 # --- 設定 ---
-# モデルを選択
-
-MODEL_NAME = "microsoft/Phi-4-mini-instruct"  # お好みのモデルに変更可能です
+# モデル名を設定
+MODEL_NAME = "google/gemma-2-2b-jpn-it"  # お好みのモデルに変更可能です
 print(f"モデル名を設定: {MODEL_NAME}")
 
 
@@ -204,7 +203,7 @@ async def generate_simple(request: SimpleGenerationRequest):
         # プロンプトテキストで直接応答を生成
         print("モデル推論を開始...")
         outputs = model(
-            text_inputs=f"## コンテキスト \nRather than just providing an answer, try to guide the user to think with you. Always finish your response with a question. \n## 質問: {request.prompt}\n答え:",
+            request.prompt,
             max_new_tokens=request.max_new_tokens,
             do_sample=request.do_sample,
             temperature=request.temperature,
