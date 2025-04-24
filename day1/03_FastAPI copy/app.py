@@ -12,9 +12,8 @@ import nest_asyncio
 from pyngrok import ngrok
 
 # --- 設定 ---
-# モデルを選択
-
-MODEL_NAME = "google/flan-t5-small" # より小さなモデルに変更
+# モデル名を設定
+MODEL_NAME = "google/gemma-2-2b-jpn-it"  # お好みのモデルに変更可能です
 print(f"モデル名を設定: {MODEL_NAME}")
 
 # --- モデル設定クラス ---
@@ -65,19 +64,13 @@ def load_model():
     """推論用のLLMモデルを読み込む"""
     global model  # グローバル変数を更新するために必要
     try:
-        # Get Hugging Face token from environment variables
-        hf_token = os.environ.get("HF_TOKEN")
-        if not hf_token:
-            print("警告: HF_TOKENが設定されていません。一部のモデルはアクセスできない可能性があります。")
-        
         device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"使用デバイス: {device}")
         pipe = pipeline(
             "text-generation",
             model=config.MODEL_NAME,
             model_kwargs={"torch_dtype": torch.bfloat16},
-            device=device,
-            token=hf_token  # Add token for Hugging Face authentication
+            device=device
         )
         print(f"モデル '{config.MODEL_NAME}' の読み込みに成功しました")
         model = pipe  # グローバル変数を更新
@@ -181,7 +174,7 @@ async def generate_simple(request: SimpleGenerationRequest):
         # プロンプトテキストで直接応答を生成
         print("モデル推論を開始...")
         outputs = model(
-            text_inputs=f"## コンテキスト \nRather than just providing an answer, try to guide the user to think with you. Always finish your response with a question. \n## 質問: {request.prompt}\n答え:",
+            request.prompt,
             max_new_tokens=request.max_new_tokens,
             do_sample=request.do_sample,
             temperature=request.temperature,
